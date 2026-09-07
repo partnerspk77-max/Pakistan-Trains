@@ -36,4 +36,3 @@ up-to-date train information in one place.
 
 ---
 
-Built and maintained by [@nullxcoder](https://github.com/nullxcoder)
