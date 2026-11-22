@@ -1,0 +1,57 @@
+name: refresh-stations
+
+# Manual-only runner for the stations master list — nothing else.
+# Click "Run workflow" and it fetches the full list, delivers it once,
+# and stamps the envelope with kind=stations. No options, no inputs.
+# Run it weekly or monthly; the list barely changes.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-stations
+  cancel-in-progress: false
+
+jobs:
+  stations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET_URL: ${{ secrets.TARGET_URL }}
+      TARGET_TOKEN: ${{ secrets.TARGET_TOKEN }}
+      TARGET_GZIP: ${{ vars.TARGET_GZIP || 'false' }}
+      HTTP_TIMEOUT: ${{ vars.HTTP_TIMEOUT || '300' }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Refresh stations
+        env:
+          SNAPSHOT_URL: ${{ secrets.STATIONS_URL }}
+          SNAPSHOT_TOKEN: ${{ secrets.STATIONS_TOKEN }}
+          SNAPSHOT_KIND: stations
+          AUDIT_DIR: ${{ runner.temp }}/audit
+        run: python pipeline/snapshot.py
+
+      - name: Save audit log (failures only)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stations-audit-${{ github.run_id }}
+          path: ${{ runner.temp }}/audit
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Wipe all run data
+        if: always()
+        run: |
+          rm -rf "${RUNNER_TEMP:?}/audit"
+          echo "scratch wiped; the runner VM itself is destroyed after the job"
