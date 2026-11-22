@@ -1,11 +1,11 @@
 name: refresh-stations
 
-# Manual-only runner for the stations master list — nothing else.
-# Click "Run workflow" and it fetches the full list, delivers it once,
-# and stamps the envelope with kind=stations. No options, no inputs.
-# Run it weekly or monthly; the list barely changes.
+# Refreshes the stations master list on pushes to main or when run manually.
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
